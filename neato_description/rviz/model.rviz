@@ -5,8 +5,6 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /RobotModel1
-        - /TF1
         - /TF1/Frames1
       Splitter Ratio: 0.5
     Tree Height: 845
@@ -27,7 +25,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: LaserScan
 Visualization Manager:
   Class: ""
   Displays:
@@ -88,7 +86,7 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        cliff_sensor_front_link:
+        cliff_sensor_left_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -97,6 +95,10 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
         gyro_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        laser_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -133,11 +135,15 @@ Visualization Manager:
           Value: true
         caster_front_right_link:
           Value: true
-        cliff_sensor_front_link:
+        cliff_sensor_left_link:
           Value: true
         cliff_sensor_right_link:
           Value: true
         gyro_link:
+          Value: true
+        laser_link:
+          Value: true
+        odom:
           Value: true
         wheel_left_link:
           Value: true
@@ -149,27 +155,60 @@ Visualization Manager:
       Show Axes: false
       Show Names: false
       Tree:
-        base_footprint:
-          base_link:
-            caster_back_left_link:
-              {}
-            caster_back_right_link:
-              {}
-            caster_front_left_link:
-              {}
-            caster_front_right_link:
-              {}
-            cliff_sensor_front_link:
-              {}
-            cliff_sensor_right_link:
-              {}
-            gyro_link:
-              {}
-            wheel_left_link:
-              {}
-            wheel_right_link:
-              {}
+        odom:
+          base_footprint:
+            base_link:
+              caster_back_left_link:
+                {}
+              caster_back_right_link:
+                {}
+              caster_front_left_link:
+                {}
+              caster_front_right_link:
+                {}
+              cliff_sensor_left_link:
+                {}
+              cliff_sensor_right_link:
+                {}
+              gyro_link:
+                {}
+              laser_link:
+                {}
+              wheel_left_link:
+                {}
+              wheel_right_link:
+                {}
       Update Interval: 0
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/LaserScan
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 0
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: LaserScan
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.01
+      Style: Flat Squares
+      Topic: /neato/laser/scan
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
       Value: true
   Enabled: true
   Global Options:
@@ -190,7 +229,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.614027
+      Distance: 4.86347
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
@@ -202,10 +241,10 @@ Visualization Manager:
         Z: 0
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.585203
+      Pitch: 0.345203
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.80226
+      Yaw: 2.03726
     Saved: ~
 Window Geometry:
   Displays:
