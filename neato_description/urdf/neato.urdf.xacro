@@ -50,7 +50,7 @@
     <joint name="wheel_left_joint" type="continuous">
       <parent link="base_link"/>
       <child link="wheel_left_link"/>
-      <origin xyz="0.00 ${0.235/2} 0.0250" rpy="${M_PI/2} 0 0"/>
+      <origin xyz="0.00 ${0.235/2} 0.0250" rpy="${M_PI/2} 0 ${M_PI}"/>
       <axis xyz="0 0 1"/>
     </joint>
     <link name="wheel_left_link">
@@ -78,7 +78,7 @@
     <joint name="wheel_right_joint" type="continuous">
       <parent link="base_link"/>
       <child link="wheel_right_link"/>
-      <origin xyz="0.00 -${0.235/2} 0.0250" rpy="${M_PI/2} 0 0"/>
+      <origin xyz="0.00 -${0.235/2} 0.0250" rpy="${M_PI/2} 0 ${M_PI}"/>
       <axis xyz="0 0 1"/>
     </joint>
     <link name="wheel_right_link">
