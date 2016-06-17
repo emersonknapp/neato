@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package>
+  <name>neato_navigation</name>
+  <version>0.0.0</version>
+  <description>The neato_navigation package</description>
+
+  <maintainer email="pieter.vanzutven@segula.nl">Pieter van Zutven</maintainer>
+
+  <license>TODO</license>
+
+  <run_depend>neato_description</run_depend>
+  <run_depend>gmapping</run_depend>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+</package>

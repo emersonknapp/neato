@@ -1,0 +1,8 @@
+<!-- Launches GMapping package with Neato laser sensor input -->
+<launch>
+
+  <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" 
+        args="scan:=/neato/laser" >
+  </node>
+
+</launch>
