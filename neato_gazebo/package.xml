@@ -11,7 +11,6 @@
   <run_depend>gazebo_ros</run_depend>
   <run_depend>gazebo_plugins</run_depend>
   <run_depend>neato_description</run_depend>
-  <run_depend>kobuki_gazebo_plugins</run_depend>
   <run_depend>robot_state_publisher</run_depend>
 
   <buildtool_depend>catkin</buildtool_depend>
