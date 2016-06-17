@@ -202,7 +202,7 @@
       <torque>1.0</torque>
       <commandTopic>/neato/cmd_vel</commandTopic>
       <odometryTopic>/neato/odom</odometryTopic>
-      <odometryFrame>base_link</odometryFrame>
+      <odometryFrame>odom</odometryFrame>
       <robotBaseFrame>base_footprint</robotBaseFrame>
     </plugin>
   </gazebo>
