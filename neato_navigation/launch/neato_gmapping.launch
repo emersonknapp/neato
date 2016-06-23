@@ -1,8 +1,11 @@
-<!-- Launches GMapping package with Neato laser sensor input -->
+<?xml version="1.0"?>
+
 <launch>
 
-  <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" 
-        args="scan:=/neato/laser" >
-  </node>
+  <!--- Run gmapping -->
+  <include file="$(find neato_navigation)/launch/gmapping.launch" />
+
+  <!--- Run Move Base -->
+  <include file="$(find neato_navigation)/launch/move_base.launch" />
 
 </launch>

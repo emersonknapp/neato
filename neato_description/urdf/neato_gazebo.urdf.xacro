@@ -200,8 +200,8 @@
       <wheelSeparation>0.235</wheelSeparation>
       <wheelDiameter>0.070</wheelDiameter>
       <torque>1.0</torque>
-      <commandTopic>/neato/cmd_vel</commandTopic>
-      <odometryTopic>/neato/odom</odometryTopic>
+      <commandTopic>cmd_vel</commandTopic>
+      <odometryTopic>odom</odometryTopic>
       <odometryFrame>odom</odometryFrame>
       <robotBaseFrame>base_footprint</robotBaseFrame>
     </plugin>
