@@ -1,5 +1,5 @@
 <!--
-  Useful for debugging or just viewing the neato model/urdf/transform. 
+  Useful for debugging or just viewing the Neato model/urdf/transform. 
  -->
 <launch>
   <arg name="urdf_file" default="$(find xacro)/xacro.py '$(find neato_description)/urdf/neato_standalone.urdf.xacro'" />
@@ -8,9 +8,8 @@
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
     <param name="publish_frequency" type="double" value="5.0" />
   </node>
-  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
-    <param name="use_gui" value="true"/>
-  </node>
+  
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/>
   
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find neato_description)/rviz/model.rviz"/>
 </launch>
