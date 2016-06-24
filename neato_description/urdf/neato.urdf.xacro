@@ -50,21 +50,21 @@
     <joint name="wheel_left_joint" type="continuous">
       <parent link="base_link"/>
       <child link="wheel_left_link"/>
-      <origin xyz="0.00 ${0.235/2} 0.0250" rpy="${M_PI/2} 0 ${M_PI}"/>
-      <axis xyz="0 0 1"/>
+      <origin xyz="0.00 ${0.235/2} 0.0250" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
     </joint>
     <link name="wheel_left_link">
       <visual>
         <geometry>
           <mesh filename="package://neato_description/meshes/wheel.dae"/>
         </geometry>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <origin xyz="0 0 0" rpy="${M_PI/2} 0 0"/>
       </visual>
       <collision>
         <geometry>
-          <cylinder length="0.0206" radius="0.0352"/>
+          <cylinder length="0.0206" radius="0.035"/>
         </geometry>
-        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <origin xyz="0 0 0" rpy="${M_PI/2} 0 0"/>
       </collision>
       <inertial>
         <mass value="0.01" />
@@ -78,21 +78,21 @@
     <joint name="wheel_right_joint" type="continuous">
       <parent link="base_link"/>
       <child link="wheel_right_link"/>
-      <origin xyz="0.00 -${0.235/2} 0.0250" rpy="${M_PI/2} 0 ${M_PI}"/>
-      <axis xyz="0 0 1"/>
+      <origin xyz="0.00 -${0.235/2} 0.0250" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
     </joint>
     <link name="wheel_right_link">
       <visual>
         <geometry>
           <mesh filename="package://neato_description/meshes/wheel.dae"/>
         </geometry>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <origin xyz="0 0 0" rpy="${M_PI/2} 0 0"/>
       </visual>
       <collision>
         <geometry>
-          <cylinder length="0.0206" radius="0.0350"/>
+          <cylinder length="0.0206" radius="0.035"/>
         </geometry>
-        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <origin xyz="0 0 0" rpy="${M_PI/2} 0 0"/>
       </collision>
       <inertial>
         <mass value="0.01" />
@@ -113,7 +113,7 @@
         <geometry>
           <cylinder length="0.0176" radius="0.01"/>
         </geometry>
-        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
       </collision>      
       <inertial>
         <mass value="0.01" />
@@ -134,7 +134,7 @@
         <geometry>
           <cylinder length="0.0176" radius="0.01"/>
         </geometry>
-        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
       </collision>      
       <inertial>
         <mass value="0.01" />
@@ -155,7 +155,7 @@
         <geometry>
           <cylinder length="0.0176" radius="0.01"/>
         </geometry>
-        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
       </collision>      
       <inertial>
         <mass value="0.01" />
@@ -176,7 +176,7 @@
         <geometry>
           <cylinder length="0.0176" radius="0.01"/>
         </geometry>
-        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
       </collision>      
       <inertial>
         <mass value="0.01" />
