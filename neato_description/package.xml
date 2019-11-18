@@ -1,18 +1,22 @@
 <?xml version="1.0"?>
-<package>
+<package format="2">
   <name>neato_description</name>
-  <version>0.0.0</version>
-  <description>The neato_description package</description>
+  <version>0.1.0</version>
+  <description>The neato_description ros2 package</description>
+  <license>Apache 2.0</license>
 
+  <buildtool_depend>ament_cmake</buildtool_depend>
   <maintainer email="pieter.vanzutven@segula.nl">Pieter van Zutven</maintainer>
 
-  <license>TODO</license>
-
+  <!---
   <run_depend>urdf</run_depend>
   <run_depend>xacro</run_depend>
-  <run_depend>rviz</run_depend>
+  <run_depend>rviz2</run_depend>
   <run_depend>joint_state_publisher</run_depend>
+  -->
 
-  <buildtool_depend>catkin</buildtool_depend>
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
 
 </package>
