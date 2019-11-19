@@ -70,6 +70,10 @@ Visualization Manager:
           Value: true
         laser_link:
           Value: true
+        wheel_left_link:
+          Value: true
+        wheel_right_link:
+          Value: true
       Marker Scale: 0.20000000298023224
       Name: TF
       Show Arrows: true
@@ -94,19 +98,23 @@ Visualization Manager:
               {}
             laser_link:
               {}
+            wheel_left_link:
+              {}
+            wheel_right_link:
+              {}
       Update Interval: 0
       Value: true
     - Alpha: 0.5
       Class: rviz_default_plugins/RobotModel
       Collision Enabled: false
       Description File: /ws/src/neato_description/neato_description/urdf/neato_standalone.urdf
-      Description Source: File
+      Description Source: Topic
       Description Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: ""
+        Value: /robot_description
       Enabled: true
       Links:
         All Links Enabled: true
@@ -217,7 +225,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 0.3395082652568817
+      Distance: 0.5559535026550293
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -232,10 +240,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.22520379722118378
+      Pitch: 0.6102039813995361
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.578566551208496
+      Yaw: 4.353567123413086
     Saved: ~
 Window Geometry:
   Displays:
@@ -251,5 +259,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 2803
-  X: 60
-  Y: 64
+  X: 393
+  Y: 152
