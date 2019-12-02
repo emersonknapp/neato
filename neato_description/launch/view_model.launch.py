@@ -3,6 +3,8 @@ import tempfile
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 import xacro
 
@@ -20,21 +22,15 @@ def generate_launch_description():
         'rviz',
         'view.rviz')
 
+    description_launch_path = os.path.join(
+        get_package_share_directory('neato_description'),
+        'launch',
+        'description.launch.py'
+    )
+
     return LaunchDescription([
-        Node(
-            package='robot_state_publisher',
-            node_executable='robot_state_publisher',
-            node_name='robot_state_publisher',
-            output='screen',
-            parameters=[{'publish_frequency': 5.0}],
-            arguments=[urdf_file.name],
-        ),
-        Node(
-            package='joint_state_publisher',
-            node_executable='joint_state_publisher',
-            name='joint_state_publisher',
-            output='screen',
-            arguments=[urdf_file.name],
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(description_launch_path)
         ),
         Node(
             package='rviz2',

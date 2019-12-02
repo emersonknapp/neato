@@ -1,23 +1,17 @@
 <?xml version="1.0" ?>
-<!-- 
+<!--
   This is not a standalone urdf for neato. It simply defines the 'neato' tag that can
   be incorporated by other urdf files (e.g. turtlebot).
-  
+
   See neato_standalone.urdf.xacro for a standalone urdf to be tested with
       neato_description/launch/view_model.launch
  -->
 <robot name="neato" xmlns:xacro="http://ros.org/wiki/xacro">
   <xacro:include filename="$(find neato_description)/urdf/common_properties.urdf.xacro"/>
   <xacro:include filename="$(find neato_description)/urdf/neato_gazebo.urdf.xacro"/>
-  
-  <!-- neato --> 
-  <xacro:macro name="neato">   
-    <link name="base_footprint"/>
-    <joint name="base_joint" type="fixed">
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <parent link="base_footprint"/>
-      <child link="base_link" />
-    </joint>
+
+  <!-- neato -->
+  <xacro:macro name="neato">
     <link name="base_link">
       <visual>
         <geometry>
@@ -42,11 +36,17 @@
         <origin xyz="0.01 0 0"/>
         <mass value="2.4"/>
         <inertia ixx="0.019995" ixy="0.0" ixz="0.0"
-                 iyy="0.019995" iyz="0.0" 
+                 iyy="0.019995" iyz="0.0"
                  izz="0.03675" />
       </inertial>
     </link>
-    
+    <joint name="base_footprint_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <parent link="base_link"/>
+      <child link="base_footprint" />
+    </joint>
+    <link name="base_footprint"/>
+
     <joint name="wheel_left_joint" type="continuous">
       <parent link="base_link"/>
       <child link="wheel_left_link"/>
@@ -70,11 +70,11 @@
         <mass value="0.01" />
         <origin xyz="0 0 0" />
         <inertia ixx="0.001" ixy="0.0" ixz="0.0"
-                 iyy="0.001" iyz="0.0" 
+                 iyy="0.001" iyz="0.0"
                  izz="0.001" />
       </inertial>
     </link>
-    
+
     <joint name="wheel_right_joint" type="continuous">
       <parent link="base_link"/>
       <child link="wheel_right_link"/>
@@ -98,11 +98,11 @@
         <mass value="0.01" />
         <origin xyz="0 0 0" />
         <inertia ixx="0.001" ixy="0.0" ixz="0.0"
-                 iyy="0.001" iyz="0.0" 
+                 iyy="0.001" iyz="0.0"
                  izz="0.001" />
       </inertial>
     </link>
-    
+
     <joint name="caster_back_right_joint" type="fixed">
       <parent link="base_link"/>
       <child link="caster_back_right_link"/>
@@ -114,16 +114,16 @@
           <cylinder length="0.0176" radius="0.01"/>
         </geometry>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-      </collision>      
+      </collision>
       <inertial>
         <mass value="0.01" />
         <origin xyz="0 0 0" />
         <inertia ixx="0.001" ixy="0.0" ixz="0.0"
-                 iyy="0.001" iyz="0.0" 
+                 iyy="0.001" iyz="0.0"
                  izz="0.001" />
       </inertial>
     </link>
-    
+
     <joint name="caster_back_left_joint" type="fixed">
       <parent link="base_link"/>
       <child link="caster_back_left_link"/>
@@ -135,16 +135,16 @@
           <cylinder length="0.0176" radius="0.01"/>
         </geometry>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-      </collision>      
+      </collision>
       <inertial>
         <mass value="0.01" />
         <origin xyz="0 0 0" />
         <inertia ixx="0.001" ixy="0.0" ixz="0.0"
-                 iyy="0.001" iyz="0.0" 
+                 iyy="0.001" iyz="0.0"
                  izz="0.001" />
       </inertial>
     </link>
-    
+
     <joint name="caster_front_right_joint" type="fixed">
       <parent link="base_link"/>
       <child link="caster_front_right_link"/>
@@ -156,16 +156,16 @@
           <cylinder length="0.0176" radius="0.01"/>
         </geometry>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-      </collision>      
+      </collision>
       <inertial>
         <mass value="0.01" />
         <origin xyz="0 0 0" />
         <inertia ixx="0.001" ixy="0.0" ixz="0.0"
-                 iyy="0.001" iyz="0.0" 
+                 iyy="0.001" iyz="0.0"
                  izz="0.001" />
       </inertial>
     </link>
-    
+
     <joint name="caster_front_left_joint" type="fixed">
       <parent link="base_link"/>
       <child link="caster_front_left_link"/>
@@ -177,16 +177,16 @@
           <cylinder length="0.0176" radius="0.01"/>
         </geometry>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-      </collision>      
+      </collision>
       <inertial>
         <mass value="0.01" />
         <origin xyz="0 0 0" />
         <inertia ixx="0.001" ixy="0.0" ixz="0.0"
-                 iyy="0.001" iyz="0.0" 
+                 iyy="0.001" iyz="0.0"
                  izz="0.001" />
       </inertial>
     </link>
-    
+
     <!-- neato's sensors -->
     <joint name="imu_joint" type="fixed">
       <axis xyz="0 1 0"/>
@@ -198,12 +198,12 @@
       <inertial>
         <mass value="0.001"/>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <inertia ixx="0.0001" ixy="0" ixz="0" 
+        <inertia ixx="0.0001" ixy="0" ixz="0"
                  iyy="0.000001" iyz="0"
                  izz="0.0001"/>
       </inertial>
     </link>
-    
+
     <joint name="cliff_sensor_right_joint" type="fixed">
       <origin xyz="0.11 -${0.29/2} 0" rpy="0 ${M_PI/2} 0" />
       <parent link="base_link"/>
@@ -214,11 +214,11 @@
         <mass value="0.0001" />
         <origin xyz="0 0 0" />
         <inertia ixx="0.0001" ixy="0.0" ixz="0.0"
-                 iyy="0.0001" iyz="0.0" 
+                 iyy="0.0001" iyz="0.0"
                  izz="0.0001" />
       </inertial>
     </link>
-    
+
     <joint name="cliff_sensor_left_joint" type="fixed">
       <origin xyz="0.11 ${0.29/2} 0" rpy="0 ${M_PI/2} 0" />
       <parent link="base_link"/>
@@ -229,11 +229,11 @@
         <mass value="0.0001" />
         <origin xyz="0 0 0" />
         <inertia ixx="0.0001" ixy="0.0" ixz="0.0"
-                 iyy="0.0001" iyz="0.0" 
+                 iyy="0.0001" iyz="0.0"
                  izz="0.0001" />
       </inertial>
     </link>
-    
+
     <joint name="laser_joint" type="fixed">
       <origin xyz="-0.084 0 0.066" rpy="0 0 0" />
       <parent link="base_link"/>
@@ -244,12 +244,12 @@
         <mass value="0.0001" />
         <origin xyz="0 0 0" />
         <inertia ixx="0.0001" ixy="0.0" ixz="0.0"
-                 iyy="0.0001" iyz="0.0" 
+                 iyy="0.0001" iyz="0.0"
                  izz="0.0001" />
       </inertial>
     </link>
-    
+
     <neato_sim/>
-    
+
   </xacro:macro>
 </robot>
