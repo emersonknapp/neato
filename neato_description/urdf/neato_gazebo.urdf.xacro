@@ -6,7 +6,7 @@
     <gazebo reference="base_link">
       <material>Gazebo/DarkGrey</material>
     </gazebo>
-    
+
     <gazebo reference="wheel_left_link">
       <mu1>1.0</mu1>
       <mu2>1.0</mu2>
@@ -15,7 +15,7 @@
       <minDepth>0.001</minDepth>
       <maxVel>1.0</maxVel>
     </gazebo>
-    
+
     <gazebo reference="wheel_right_link">
       <mu1>1.0</mu1>
       <mu2>1.0</mu2>
@@ -24,7 +24,7 @@
       <minDepth>0.001</minDepth>
       <maxVel>1.0</maxVel>
     </gazebo>
-    
+
     <gazebo reference="caster_front_right_link">
       <mu1>0.0</mu1>
       <mu2>0.0</mu2>
@@ -33,7 +33,7 @@
       <minDepth>0.001</minDepth>
       <maxVel>1.0</maxVel>
     </gazebo>
-    
+
     <gazebo reference="caster_front_left_link">
       <mu1>0.0</mu1>
       <mu2>0.0</mu2>
@@ -42,7 +42,7 @@
       <minDepth>0.001</minDepth>
       <maxVel>1.0</maxVel>
     </gazebo>
-    
+
     <gazebo reference="caster_back_right_link">
       <mu1>0.0</mu1>
       <mu2>0.0</mu2>
@@ -51,7 +51,7 @@
       <minDepth>0.001</minDepth>
       <maxVel>1.0</maxVel>
     </gazebo>
-    
+
     <gazebo reference="caster_back_left_link">
       <mu1>0.0</mu1>
       <mu2>0.0</mu2>
@@ -60,7 +60,7 @@
       <minDepth>0.001</minDepth>
       <maxVel>1.0</maxVel>
     </gazebo>
-    
+
     <gazebo reference="base_link">
       <mu1>0.3</mu1>
       <mu2>0.3</mu2>
@@ -77,9 +77,10 @@
         </plugin>
       </sensor>
     </gazebo>
-    
+
+    <!--
     <gazebo reference="cliff_sensor_left_link">
-      <sensor type="gpu_ray" name="cliff_sensor_left">
+      <sensor type="ray_sensor" name="cliff_sensor_left">
         <always_on>true</always_on>
         <update_rate>50</update_rate>
         <visualize>true</visualize>
@@ -104,16 +105,24 @@
         </plugin>
       </sensor>
     </gazebo>
-    
+    -->
+
+    <!--
     <gazebo reference="cliff_sensor_right_link">
-      <sensor type="gpu_ray" name="cliff_sensor_right">
+      <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_ray_sensor.so">
+          <ros>
+            <argument>~/out:=cliff_right</argument>
+          </ros>
+          <frame_name>laser_link</frame_name>
+      </plugin>
+      <sensor type="ray" name="cliff_sensor_right">
         <always_on>true</always_on>
-        <update_rate>50</update_rate>
+        <update_rate>5</update_rate>
         <visualize>true</visualize>
         <ray>
           <scan>
             <horizontal>
-              <samples>50</samples>
+              <samples>1</samples>
               <resolution>1.0</resolution>
               <min_angle>-0.0436</min_angle>
               <max_angle>0.0436</max_angle>
@@ -125,17 +134,22 @@
             <resolution>1.0</resolution>
           </range>
         </ray>
-        <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_gpu_laser.so">
-          <topicName>/neato/cliff_right</topicName>
-          <frameName>cliff_sensor_right_link</frameName>
-        </plugin>
       </sensor>
     </gazebo>
+    -->
 
     <gazebo reference="laser_link">
-      <sensor type="gpu_ray" name="laser">
+      <sensor type="ray" name="laser">
+        <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_ray_sensor.so">
+          <ros>
+            <argument>~/out:=scan</argument>
+          </ros>
+          <output_type>sensor_msgs/LaserScan</output_type>
+          <frame_name>laser_link</frame_name>
+        </plugin>
+
         <always_on>true</always_on>
-        <update_rate>50</update_rate>
+        <update_rate>5</update_rate>
         <visualize>true</visualize>
         <ray>
           <scan>
@@ -152,17 +166,21 @@
             <resolution>1</resolution>
           </range>
         </ray>
-        <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_gpu_laser.so">
-          <topicName>/neato/laser</topicName>
-          <frameName>laser_link</frameName>
-        </plugin>
       </sensor>
     </gazebo>
-    
+
     <gazebo reference="imu_link">
-      <sensor type="imu" name="imu">
+      <sensor type="imu" name="neato_imu">
+        <plugin name="gazebo_ros_imu_controller" filename="libgazebo_ros_imu_sensor.so">
+          <ros>
+            <argument>~/out:=imu</argument>
+          </ros>
+          <output_type>sensor_msgs/msg/Imu</output_type>
+          <body_name>imu_link</body_name>
+          <frame_name>imu_link</frame_name>
+        </plugin>
         <always_on>true</always_on>
-        <update_rate>50</update_rate>
+        <update_rate>10</update_rate>
         <visualize>false</visualize>
         <imu>
           <noise>
@@ -183,29 +201,21 @@
         </imu>
       </sensor>
     </gazebo>
- 
-    <gazebo>
-      <plugin name="gazebo_ros_imu_controller" filename="libgazebo_ros_imu.so">
-        <topicName>/neato/imu</topicName>
-        <bodyName>imu_link</bodyName>
-      </plugin>
-    </gazebo>
-    
+
     <gazebo>
       <plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
-      <alwaysOn>true</alwaysOn>
-      <updateRate>10</updateRate>
-      <leftJoint>wheel_right_joint</leftJoint>
-      <rightJoint>wheel_left_joint</rightJoint>
-      <wheelSeparation>0.235</wheelSeparation>
-      <wheelDiameter>0.070</wheelDiameter>
-      <torque>1.0</torque>
-      <commandTopic>cmd_vel</commandTopic>
-      <odometryTopic>odom</odometryTopic>
-      <odometryFrame>odom</odometryFrame>
-      <robotBaseFrame>base_footprint</robotBaseFrame>
-    </plugin>
-  </gazebo>
-    
+        <update_rate>10</update_rate>
+        <left_joint>wheel_right_joint</left_joint>
+        <right_joint>wheel_left_joint</right_joint>
+        <wheel_separation>0.235</wheel_separation>
+        <wheel_diameter>0.070</wheel_diameter>
+        <torque>1.0</torque>
+        <command_topic>cmd_vel</command_topic>
+        <odometry_topic>odom</odometry_topic>
+        <odometry_frame>odom</odometry_frame>
+        <robot_base_frame>base_footprint</robot_base_frame>
+      </plugin>
+    </gazebo>
+
   </xacro:macro>
 </robot>
