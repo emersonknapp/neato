@@ -18,25 +18,21 @@ import tempfile
 from ament_index_python.packages import get_package_share_directory
 import launch
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 import xacro
 
 
 def generate_launch_description():
+    neato_share_dir = get_package_share_directory('neato_description')
     xacro_path = os.path.join(
-        get_package_share_directory('neato_description'), 'urdf', 'neato_standalone.urdf.xacro')
+        neato_share_dir, 'urdf', 'neato_standalone.urdf.xacro')
     urdf_content = xacro.process_file(xacro_path)
     urdf_file = tempfile.NamedTemporaryFile(delete=False)
     rendered_urdf = urdf_content.toprettyxml(indent='  ')
     urdf_file.write(rendered_urdf.encode('utf-8'))
 
-    description_launch_path = os.path.join(
-        get_package_share_directory('neato_description'),
-        'launch',
-        'description.launch.py'
-    )
+    description_repo_path = os.path.join(
+        neato_share_dir, '..')
 
     return LaunchDescription([
         launch.actions.ExecuteProcess(
@@ -45,6 +41,9 @@ def generate_launch_description():
                 '-s', 'libgazebo_ros_init.so',
                 '-s', 'libgazebo_ros_factory.so',
             ],
+            additional_env={
+                'GAZEBO_MODEL_PATH': [description_repo_path],
+            },
             output='screen'
         ),
         Node(
@@ -55,5 +54,4 @@ def generate_launch_description():
             arguments=['-file', urdf_file.name, '-entity', 'neato'],
             # on_exit=launch.actions.Shutdown(),
         ),
-        IncludeLaunchDescription(PythonLaunchDescriptionSource(description_launch_path)),
     ])
