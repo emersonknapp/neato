@@ -31,13 +31,15 @@ def generate_launch_description():
     rendered_urdf = urdf_content.toprettyxml(indent='  ')
     urdf_file.write(rendered_urdf.encode('utf-8'))
 
-    description_repo_path = os.path.join(
-        neato_share_dir, '..')
+    neato_gazebo_share_dir = get_package_share_directory('neato_gazebo')
+    world = os.path.join(neato_gazebo_share_dir, 'worlds', 'neato_test.world')
+
+    description_repo_path = os.path.join(neato_share_dir, '..')
 
     return LaunchDescription([
         launch.actions.ExecuteProcess(
             cmd=[
-                'gazebo', '--verbose',
+                'gazebo', '--verbose', world,
                 '-s', 'libgazebo_ros_init.so',
                 '-s', 'libgazebo_ros_factory.so',
             ],
