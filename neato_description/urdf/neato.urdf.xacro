@@ -12,12 +12,6 @@
 
   <!-- neato -->
   <xacro:macro name="neato">
-    <link name="base_footprint"/>
-    <joint name="base_joint" type="fixed">
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <parent link="base_footprint"/>
-      <child link="base_link" />
-    </joint>
     <link name="base_link">
       <visual>
         <geometry>
@@ -46,6 +40,12 @@
                  izz="0.03675" />
       </inertial>
     </link>
+    <link name="base_footprint"/>
+    <joint name="base_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <parent link="base_link"/>
+      <child link="base_footprint" />
+    </joint>
 
     <joint name="wheel_left_joint" type="continuous">
       <parent link="base_link"/>

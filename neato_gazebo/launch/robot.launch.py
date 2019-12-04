@@ -16,7 +16,6 @@ import os
 import tempfile
 
 from ament_index_python.packages import get_package_share_directory
-import launch
 from launch import LaunchDescription
 from launch_ros.actions import Node
 import xacro
@@ -31,23 +30,7 @@ def generate_launch_description():
     rendered_urdf = urdf_content.toprettyxml(indent='  ')
     urdf_file.write(rendered_urdf.encode('utf-8'))
 
-    neato_gazebo_share_dir = get_package_share_directory('neato_gazebo')
-    world = os.path.join(neato_gazebo_share_dir, 'worlds', 'neato_test.world')
-
-    description_repo_path = os.path.join(neato_share_dir, '..')
-
     return LaunchDescription([
-        launch.actions.ExecuteProcess(
-            cmd=[
-                'gazebo', '--verbose', world,
-                '-s', 'libgazebo_ros_init.so',
-                '-s', 'libgazebo_ros_factory.so',
-            ],
-            additional_env={
-                'GAZEBO_MODEL_PATH': [description_repo_path],
-            },
-            output='screen'
-        ),
         Node(
             package='gazebo_ros',
             node_executable='spawn_entity.py',

@@ -209,11 +209,16 @@
         <right_joint>wheel_right_joint</right_joint>
         <wheel_separation>0.235</wheel_separation>
         <wheel_diameter>0.070</wheel_diameter>
-        <torque>1.0</torque>
+        <max_wheel_torque>20</max_wheel_torque>
+        <max_wheel_acceleration>1.0</max_wheel_acceleration>
         <command_topic>cmd_vel</command_topic>
+        <!-- output -->
+        <publish_odom>true</publish_odom>
+        <publish_odom_tf>true</publish_odom_tf>
+        <!-- <publish_wheel_tf>true</publish_wheel_tf> -->
         <odometry_topic>odom</odometry_topic>
         <odometry_frame>odom</odometry_frame>
-        <robot_base_frame>base_footprint</robot_base_frame>
+        <robot_base_frame>base_link</robot_base_frame>
       </plugin>
     </gazebo>
 
