@@ -18,9 +18,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 import launch.actions
 from launch.actions import IncludeLaunchDescription
-from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
 
 
 def generate_launch_description():
@@ -46,7 +44,6 @@ def generate_launch_description():
                 'GAZEBO_MODEL_PATH': [description_repo_path],
             },
             output='screen',
-            condition=IfCondition(LaunchConfiguration('gaz')),
         ),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(gazebo_launch_path)

@@ -24,11 +24,11 @@ def generate_launch_description():
             parameters=[{'publish_frequency': 5.0}],
             arguments=[urdf_file.name],
         ),
-        Node(
-            package='joint_state_publisher',
-            node_executable='joint_state_publisher',
-            name='joint_state_publisher',
-            output='screen',
-            arguments=[urdf_file.name],
-        ),
+        # Node(
+        #     package='joint_state_publisher',
+        #     node_executable='joint_state_publisher',
+        #     name='joint_state_publisher',
+        #     output='screen',
+        #     arguments=[urdf_file.name],
+        # ),
     ])
