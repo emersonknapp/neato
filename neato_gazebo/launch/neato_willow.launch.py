@@ -57,6 +57,7 @@ def generate_launch_description():
                 'base_driver': 'false',
                 'viz': 'true',
                 'use_sim_time': 'true',
+                'slam': 'true',
             }.items(),
         )
     ])
