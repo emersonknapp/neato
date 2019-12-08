@@ -161,10 +161,15 @@
             </horizontal>
           </scan>
           <range>
-            <min>0.1</min>
+            <min>0.3</min>
             <max>5</max>
             <resolution>1</resolution>
           </range>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.0</stddev>
+          </noise>
         </ray>
       </sensor>
     </gazebo>

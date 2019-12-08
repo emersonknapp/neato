@@ -17,6 +17,8 @@ import tempfile
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 import xacro
 
@@ -31,12 +33,14 @@ def generate_launch_description():
     urdf_file.write(rendered_urdf.encode('utf-8'))
 
     return LaunchDescription([
+        DeclareLaunchArgument('use_sim_time', default_value='false'),
         Node(
             package='gazebo_ros',
             node_executable='spawn_entity.py',
             node_name='spawn_neato',
             output='screen',
             arguments=['-file', urdf_file.name, '-entity', 'neato'],
+            parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
             # on_exit=launch.actions.Shutdown(),
         ),
     ])

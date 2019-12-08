@@ -36,7 +36,7 @@ def generate_launch_description():
     return LaunchDescription([
         launch.actions.ExecuteProcess(
             cmd=[
-                'gazebo', '--verbose', world,
+                'gzserver', '--verbose', world,
                 '-s', 'libgazebo_ros_init.so',
                 '-s', 'libgazebo_ros_factory.so',
             ],
@@ -46,10 +46,17 @@ def generate_launch_description():
             output='screen',
         ),
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(gazebo_launch_path)
+            PythonLaunchDescriptionSource(gazebo_launch_path),
+            launch_arguments={
+                'use_sim_time': 'true',
+            }.items(),
         ),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(stack_launch_path),
-            launch_arguments={'base_driver': 'false', 'viz': 'true'}.items(),
+            launch_arguments={
+                'base_driver': 'false',
+                'viz': 'true',
+                'use_sim_time': 'true',
+            }.items(),
         )
     ])
