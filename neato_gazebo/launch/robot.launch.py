@@ -41,6 +41,5 @@ def generate_launch_description():
             output='screen',
             arguments=['-file', urdf_file.name, '-entity', 'neato'],
             parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
-            # on_exit=launch.actions.Shutdown(),
         ),
     ])
