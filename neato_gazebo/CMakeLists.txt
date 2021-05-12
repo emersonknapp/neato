@@ -21,6 +21,12 @@ ament_target_dependencies(neato_gazebo_diff_drive
   tf2_ros
 )
 ament_export_libraries(neato_gazebo_diff_drive)
+install(TARGETS
+  neato_gazebo_diff_drive
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
 install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME})

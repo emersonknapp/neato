@@ -4,7 +4,7 @@
   <xacro:macro name="neato_sim">
 
     <gazebo reference="base_link">
-      <material>Gazebo/DarkGrey</material>
+      <material>Gazebo/LightGrey</material>
     </gazebo>
 
     <gazebo reference="wheel_left_link">
@@ -207,6 +207,30 @@
       </sensor>
     </gazebo>
 
+    <!-- This version is for the NeatoWheelCommand controller. Commented out parameters, not sure if we need them yet. -->
+    <gazebo>
+      <plugin name="drive_controller" filename="libneato_gazebo_diff_drive.so">
+        <!-- <update_rate>10</update_rate> -->
+        <left_joint>wheel_left_joint</left_joint>
+        <right_joint>wheel_right_joint</right_joint>
+        <!-- <wheel_separation>0.235</wheel_separation> -->
+        <wheel_diameter>0.070</wheel_diameter>
+        <max_wheel_torque>20</max_wheel_torque>
+        <max_wheel_acceleration>1.0</max_wheel_acceleration>
+        <command_topic>neato_cmd</command_topic>
+
+        <publish_odom>true</publish_odom>
+        <publish_odom_tf>true</publish_odom_tf>
+        <publish_wheel_tf>true</publish_wheel_tf>
+
+        <odometry_topic>odom</odometry_topic>
+        <odometry_frame>odom</odometry_frame>
+        <robot_base_frame>base_link</robot_base_frame>
+      </plugin>
+    </gazebo>
+
+    <!-- This version is for the normal diff_drive controller that takes in Twist msgs -->
+    <!--
     <gazebo>
       <plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
         <update_rate>10</update_rate>
@@ -217,7 +241,7 @@
         <max_wheel_torque>20</max_wheel_torque>
         <max_wheel_acceleration>1.0</max_wheel_acceleration>
         <command_topic>cmd_vel</command_topic>
-        <!-- output -->
+
         <publish_odom>true</publish_odom>
         <publish_odom_tf>true</publish_odom_tf>
         <publish_wheel_tf>true</publish_wheel_tf>
@@ -227,6 +251,7 @@
         <robot_base_frame>base_link</robot_base_frame>
       </plugin>
     </gazebo>
+    -->
 
   </xacro:macro>
 </robot>
