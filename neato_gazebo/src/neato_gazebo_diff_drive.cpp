@@ -15,10 +15,13 @@
 #include <string>
 
 #include "gazebo/common/Plugin.hh"
+#include "gazebo/physics/Link.hh"
 #include "gazebo/physics/Joint.hh"
 #include "gazebo/physics/Model.hh"
 #include "gazebo/physics/World.hh"
 
+#include "gazebo_ros/conversions/builtin_interfaces.hpp"
+#include "gazebo_ros/conversions/geometry_msgs.hpp"
 #include "gazebo_ros/node.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "neato_msgs/msg/neato_wheel_command.hpp"
@@ -41,12 +44,22 @@ protected:
 
 private:
   /// Callback to be called at every simulation iteration.
-  /// \param[in] info Updated simulation info.
   void OnUpdate(const gazebo::common::UpdateInfo & info);
 
   /// Callback when a velocity command is received.
-  /// \param[in] msg command message.
   void OnCmd(const neato_msgs::msg::NeatoWheelCommand::SharedPtr msg);
+
+  /// Update odometry according to ground truth from simulation world
+  void UpdateOdometry();
+
+  /// Publish odometry message
+  void PublishOdometryMsg(const gazebo::common::Time & sim_time);
+
+  /// Publish trasforms for the wheels
+  void PublishWheelTf(const gazebo::common::Time & sim_time, gazebo::physics::JointPtr joint);
+
+  /// Publish odometry transforms
+  void PublishOdometryTf(const gazebo::common::Time & sim_time);
 
 private:
   struct Pose2D
@@ -79,6 +92,7 @@ private:
   gazebo_ros::Node::SharedPtr ros_node_;
   rclcpp::Subscription<neato_msgs::msg::NeatoWheelCommand>::SharedPtr cmd_sub_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
+  nav_msgs::msg::Odometry odom_;
   std::shared_ptr<tf2_ros::TransformBroadcaster> transform_broadcaster_;
 
   // dynamic tracking variables
@@ -189,12 +203,138 @@ void NeatoGazeboDiffDrive::Reset()
 
 void NeatoGazeboDiffDrive::OnUpdate(const gazebo::common::UpdateInfo & info)
 {
-  // TODO(neato)
+  double seconds_since_last_update = (info.simTime - last_update_time_).Double();
+  if (seconds_since_last_update < update_period_) {
+    return;
+  }
+
+  UpdateOdometry();
+  if (odom_pub_) {
+    PublishOdometryMsg(info.simTime);
+  }
+  if (publish_wheel_tf_) {
+    PublishWheelTf(info.simTime, left_wheel_joint_);
+    PublishWheelTf(info.simTime, right_wheel_joint_);
+  }
+  if (publish_odom_tf_) {
+    PublishOdometryTf(info.simTime);
+  }
+  // UpdateWheelVelocities();
+
+  // TODO(neato) current speed, update speed
+  double current_left_speed = left_wheel_joint_->GetVelocity(0) * (wheel_diameter_ / 2.0);
+  double current_right_speed = right_wheel_joint_->GetVelocity(0) * (wheel_diameter_ / 2.0);
+  /*
+  // If max_accel == 0, or target speed is reached
+  for (unsigned int i = 0; i < num_wheel_pairs_; ++i) {
+    if (max_wheel_accel_ == 0 ||
+      ((fabs(desired_wheel_speed_[2 * i + LEFT] - current_speed[2 * i + LEFT]) < 0.01) &&
+      (fabs(desired_wheel_speed_[2 * i + RIGHT] - current_speed[2 * i + RIGHT]) < 0.01)))
+    {
+      joints_[2 * i + LEFT]->SetParam(
+        "vel", 0, desired_wheel_speed_[2 * i + LEFT] / (wheel_diameter_[i] / 2.0));
+      joints_[2 * i + RIGHT]->SetParam(
+        "vel", 0, desired_wheel_speed_[2 * i + RIGHT] / (wheel_diameter_[i] / 2.0));
+    } else {
+      if (desired_wheel_speed_[2 * i + LEFT] >= current_speed[2 * i + LEFT]) {
+        wheel_speed_instr_[2 * i + LEFT] += fmin(
+          desired_wheel_speed_[2 * i + LEFT] -
+          current_speed[2 * i + LEFT], max_wheel_accel_ * seconds_since_last_update);
+      } else {
+        wheel_speed_instr_[2 * i + LEFT] += fmax(
+          desired_wheel_speed_[2 * i + LEFT] -
+          current_speed[2 * i + LEFT], -max_wheel_accel_ * seconds_since_last_update);
+      }
+
+      if (desired_wheel_speed_[2 * i + RIGHT] > current_speed[2 * i + RIGHT]) {
+        wheel_speed_instr_[2 * i + RIGHT] += fmin(
+          desired_wheel_speed_[2 * i + RIGHT] -
+          current_speed[2 * i + RIGHT], max_wheel_accel_ * seconds_since_last_update);
+      } else {
+        wheel_speed_instr_[2 * i + RIGHT] += fmax(
+          desired_wheel_speed_[2 * i + RIGHT] -
+          current_speed[2 * i + RIGHT], -max_wheel_accel_ * seconds_since_last_update);
+      }
+
+      joints_[2 * i + LEFT]->SetParam(
+        "vel", 0, wheel_speed_instr_[2 * i + LEFT] / (wheel_diameter_[i] / 2.0));
+      joints_[2 * i + RIGHT]->SetParam(
+        "vel", 0, wheel_speed_instr_[2 * i + RIGHT] / (wheel_diameter_[i] / 2.0));
+    }
+  }
+  */
+
+  last_update_time_ = info.simTime;
 }
 
 void NeatoGazeboDiffDrive::OnCmd(const neato_msgs::msg::NeatoWheelCommand::SharedPtr msg)
 {
   // TODO(neato)
+}
+
+void NeatoGazeboDiffDrive::UpdateOdometry()
+{
+  auto pose = model_->WorldPose();
+  odom_.pose.pose.position = gazebo_ros::Convert<geometry_msgs::msg::Point>(pose.Pos());
+  odom_.pose.pose.orientation = gazebo_ros::Convert<geometry_msgs::msg::Quaternion>(pose.Rot());
+
+  odom_.twist.twist.angular.z = model_->WorldAngularVel().Z();
+
+  auto linear = model_->WorldLinearVel();
+  float yaw = pose.Rot().Yaw();
+  odom_.twist.twist.linear.x = cosf(yaw) * linear.X() + sinf(yaw) * linear.Y();
+  odom_.twist.twist.linear.y = cosf(yaw) * linear.Y() - sinf(yaw) * linear.X();
+}
+
+void NeatoGazeboDiffDrive::PublishOdometryMsg(const gazebo::common::Time & sim_time)
+{
+  odom_.pose.covariance[0] = odom_covariance_[0];
+  odom_.pose.covariance[7] = odom_covariance_[1];
+  odom_.pose.covariance[14] = 1000000000000.0;
+  odom_.pose.covariance[21] = 1000000000000.0;
+  odom_.pose.covariance[28] = 1000000000000.0;
+  odom_.pose.covariance[35] = odom_covariance_[2];
+
+  odom_.twist.covariance[0] = odom_covariance_[0];
+  odom_.twist.covariance[7] = odom_covariance_[1];
+  odom_.twist.covariance[14] = 1000000000000.0;
+  odom_.twist.covariance[21] = 1000000000000.0;
+  odom_.twist.covariance[28] = 1000000000000.0;
+  odom_.twist.covariance[35] = odom_covariance_[2];
+
+  odom_.header.frame_id = odometry_frame_;
+  odom_.child_frame_id = robot_base_frame_;
+  odom_.header.stamp = gazebo_ros::Convert<builtin_interfaces::msg::Time>(sim_time);
+
+  odom_pub_->publish(odom_);
+}
+
+void NeatoGazeboDiffDrive::PublishWheelTf(
+  const gazebo::common::Time & sim_time, gazebo::physics::JointPtr joint)
+{
+  auto pose_wheel = joint->GetChild()->RelativePose();
+
+  geometry_msgs::msg::TransformStamped msg;
+  msg.header.stamp = gazebo_ros::Convert<builtin_interfaces::msg::Time>(sim_time);
+  msg.header.frame_id = joint->GetParent()->GetName();
+  msg.child_frame_id = joint->GetChild()->GetName();
+  msg.transform.translation = gazebo_ros::Convert<geometry_msgs::msg::Vector3>(pose_wheel.Pos());
+  msg.transform.rotation = gazebo_ros::Convert<geometry_msgs::msg::Quaternion>(pose_wheel.Rot());
+
+  transform_broadcaster_->sendTransform(msg);
+}
+
+void NeatoGazeboDiffDrive::PublishOdometryTf(const gazebo::common::Time & sim_time)
+{
+  geometry_msgs::msg::TransformStamped msg;
+  msg.header.stamp = gazebo_ros::Convert<builtin_interfaces::msg::Time>(sim_time);
+  msg.header.frame_id = odometry_frame_;
+  msg.child_frame_id = robot_base_frame_;
+  msg.transform.translation =
+    gazebo_ros::Convert<geometry_msgs::msg::Vector3>(odom_.pose.pose.position);
+  msg.transform.rotation = odom_.pose.pose.orientation;
+
+  transform_broadcaster_->sendTransform(msg);
 }
 
 GZ_REGISTER_MODEL_PLUGIN(NeatoGazeboDiffDrive)
