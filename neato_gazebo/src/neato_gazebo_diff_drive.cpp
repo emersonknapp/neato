@@ -1,3 +1,4 @@
+// Copyright 2021 Emerson Knapp
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,9 +11,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <memory>
+#include <string>
+
 #include "gazebo/common/Plugin.hh"
 #include "gazebo/physics/Joint.hh"
 #include "gazebo/physics/Model.hh"
+#include "gazebo/physics/World.hh"
 
 #include "gazebo_ros/node.hpp"
 #include "nav_msgs/msg/odometry.hpp"
@@ -22,6 +27,7 @@
 
 namespace neato_gazebo
 {
+
 
 class NeatoGazeboDiffDrive : public gazebo::ModelPlugin
 {
@@ -43,27 +49,42 @@ private:
   void OnCmd(const neato_msgs::msg::NeatoWheelCommand::SharedPtr msg);
 
 private:
-  // general configuration
+  struct Pose2D
+  {
+    double x;
+    double y;
+    double theta;
+  };
+
+  // configuration
   double wheel_diameter_;
   double max_wheel_accel_;
   double max_wheel_torque_;
   double odom_covariance_[3];
 
+  std::string robot_base_frame_;
+  std::string odometry_frame_;
+
+  double update_period_;
+  bool publish_wheel_tf_;
+  bool publish_odom_tf_;
+
+  // Gazebo assets
+  gazebo::physics::ModelPtr model_;
+  gazebo::event::ConnectionPtr update_connection_;
+  gazebo::physics::JointPtr left_wheel_joint_;
+  gazebo::physics::JointPtr right_wheel_joint_;
+
   // ROS assets
   gazebo_ros::Node::SharedPtr ros_node_;
   rclcpp::Subscription<neato_msgs::msg::NeatoWheelCommand>::SharedPtr cmd_sub_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
-  std::string robot_base_frame_;
-  std::string odometry_frame_;
-  bool publish_wheel_tf_;
-  bool publish_odom_tf_;
   std::shared_ptr<tf2_ros::TransformBroadcaster> transform_broadcaster_;
 
-  // Gazebo assets
-  gazebo::event::ConnectionPtr update_connection_;
-  gazebo::physics::JointPtr left_wheel_joint_;
-  gazebo::physics::JointPtr right_wheel_joint_;
-  gazebo::physics::ModelPtr model_;
+  // dynamic tracking variables
+  gazebo::common::Time last_update_time_;
+  gazebo::common::Time last_encoder_update_;
+  Pose2D pose_encoder_;
 };
 
 void NeatoGazeboDiffDrive::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr sdf)
@@ -72,9 +93,26 @@ void NeatoGazeboDiffDrive::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr
   ros_node_ = gazebo_ros::Node::Get(sdf);
 
   // Initialize general configuration
-  max_wheel_accel_  = sdf->Get<double>("max_wheel_acceleration", 0.0).first;
-  max_wheel_torque_ = sdf->Get<double>("max_wheel_torque", 5.0).first;
   wheel_diameter_ = sdf->Get<double>("wheel_diameter", 0.070).first;
+  max_wheel_accel_ = sdf->Get<double>("max_wheel_acceleration", 0.0).first;
+  max_wheel_torque_ = sdf->Get<double>("max_wheel_torque", 5.0).first;
+  odom_covariance_[0] = sdf->Get<double>("covariance_x", 0.00001).first;
+  odom_covariance_[1] = sdf->Get<double>("covariance_y", 0.00001).first;
+  odom_covariance_[2] = sdf->Get<double>("covariance_yaw", 0.001).first;
+
+  odometry_frame_ = sdf->Get<std::string>("odometry_frame", "odom").first;
+  robot_base_frame_ = sdf->Get<std::string>("robot_base_frame", "base_footprint").first;
+
+  {
+    auto update_rate = sdf->Get<double>("update_rate", 100.0).first;
+    if (update_rate > 0.0) {
+      update_period_ = 1.0 / update_rate;
+    } else {
+      update_period_ = 0.0;
+    }
+  }
+  publish_wheel_tf_ = sdf->Get<bool>("publish_wheel_tf", false).first;
+  publish_odom_tf_ = sdf->Get<bool>("publish_odom_tf", false).first;
 
   // Initialize Gazebo assets
   {
@@ -82,8 +120,9 @@ void NeatoGazeboDiffDrive::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr
     auto joint_name = joint_elem->Get<std::string>();
     auto joint = model->GetJoint(joint_name);
     if (!joint) {
-      RCLCPP_ERROR(ros_node_->get_logger(),
-      "Joint [%s] not found, plugin will not work.", joint_name.c_str());
+      RCLCPP_ERROR(
+        ros_node_->get_logger(),
+        "Joint [%s] not found, plugin will not work.", joint_name.c_str());
       ros_node_.reset();
       return;
     }
@@ -94,8 +133,9 @@ void NeatoGazeboDiffDrive::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr
     auto joint_name = joint_elem->Get<std::string>();
     auto joint = model->GetJoint(joint_name);
     if (!joint) {
-      RCLCPP_ERROR(ros_node_->get_logger(),
-      "Joint [%s] not found, plugin will not work.", joint_name.c_str());
+      RCLCPP_ERROR(
+        ros_node_->get_logger(),
+        "Joint [%s] not found, plugin will not work.", joint_name.c_str());
       ros_node_.reset();
       return;
     }
@@ -117,8 +157,6 @@ void NeatoGazeboDiffDrive::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr
   }
   {
     // Odometry publisher
-    odometry_frame_ = sdf->Get<std::string>("odometry_frame", "odom").first;
-    robot_base_frame_ = sdf->Get<std::string>("robot_base_frame", "base_footprint").first;
     bool publish_odom = sdf->Get<bool>("publish_odom", false).first;
     if (publish_odom) {
       auto odom_topic = sdf->Get<std::string>("odometry_topic", "odom").first;
@@ -129,23 +167,34 @@ void NeatoGazeboDiffDrive::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr
       RCLCPP_INFO(ros_node_->get_logger(), "Not publishing odometry");
     }
   }
-  {
-    // Tranform broadcaster
-    publish_wheel_tf_ = sdf->Get<bool>("publish_wheel_tf", false).first;
-    publish_odom_tf_ = sdf->Get<bool>("publish_odom_tf", false).first;
-    transform_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(ros_node_);
-  }
-  {
-    // Odometry covariance
-    odom_covariance_[0] = sdf->Get<double>("covariance_x", 0.00001).first;
-    odom_covariance_[1] = sdf->Get<double>("covariance_y", 0.00001).first;
-    odom_covariance_[2] = sdf->Get<double>("covariance_yaw", 0.001).first;
-  }
+  transform_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(ros_node_);
+
+
+  // Initialize tracking variables
+  last_update_time_ = model->GetWorld()->SimTime();
 }
 
 void NeatoGazeboDiffDrive::Reset()
 {
+  last_update_time_ = left_wheel_joint_->GetWorld()->SimTime();
+  left_wheel_joint_->SetParam("fmax", 0, max_wheel_torque_);
+  right_wheel_joint_->SetParam("fmax", 0, max_wheel_torque_);
+  pose_encoder_.x = 0;
+  pose_encoder_.y = 0;
+  pose_encoder_.theta = 0;
+  // TODO(neato)
+  // target_x_ = 0;
+  // target_rot_ = 0;
+}
 
+void NeatoGazeboDiffDrive::OnUpdate(const gazebo::common::UpdateInfo & info)
+{
+  // TODO(neato)
+}
+
+void NeatoGazeboDiffDrive::OnCmd(const neato_msgs::msg::NeatoWheelCommand::SharedPtr msg)
+{
+  // TODO(neato)
 }
 
 GZ_REGISTER_MODEL_PLUGIN(NeatoGazeboDiffDrive)

@@ -36,6 +36,6 @@ install(DIRECTORY worlds
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
-endif(BUILD_TESTING)
+endif()
 
 ament_package()
