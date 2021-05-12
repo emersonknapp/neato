@@ -26,6 +26,7 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "neato_msgs/msg/neato_wheel_command.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "rcpputils/thread_safety_annotations.hpp"
 #include "tf2_ros/transform_broadcaster.h"
 
 namespace neato_gazebo
@@ -61,6 +62,9 @@ private:
   /// Publish odometry transforms
   void PublishOdometryTf(const gazebo::common::Time & sim_time);
 
+  /// Update wheel velocities according to latest target velocities.
+  void UpdateWheelJoints(double seconds_since_last_update);
+
 private:
   struct Pose2D
   {
@@ -71,7 +75,6 @@ private:
 
   // configuration
   double wheel_diameter_;
-  double max_wheel_accel_;
   double max_wheel_torque_;
   double odom_covariance_[3];
 
@@ -97,8 +100,11 @@ private:
 
   // dynamic tracking variables
   gazebo::common::Time last_update_time_;
-  gazebo::common::Time last_encoder_update_;
-  Pose2D pose_encoder_;
+  std::mutex cmd_mutex_;
+  neato_msgs::msg::NeatoWheelCommand current_cmd_ RCPPUTILS_TSA_GUARDED_BY(cmd_mutex_);
+  double last_sent_left_wheel_speed_;
+  double last_sent_right_wheel_speed_;
+
 };
 
 void NeatoGazeboDiffDrive::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr sdf)
@@ -108,7 +114,6 @@ void NeatoGazeboDiffDrive::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr
 
   // Initialize general configuration
   wheel_diameter_ = sdf->Get<double>("wheel_diameter", 0.070).first;
-  max_wheel_accel_ = sdf->Get<double>("max_wheel_acceleration", 0.0).first;
   max_wheel_torque_ = sdf->Get<double>("max_wheel_torque", 5.0).first;
   odom_covariance_[0] = sdf->Get<double>("covariance_x", 0.00001).first;
   odom_covariance_[1] = sdf->Get<double>("covariance_y", 0.00001).first;
@@ -183,7 +188,6 @@ void NeatoGazeboDiffDrive::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr
   }
   transform_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(ros_node_);
 
-
   // Initialize tracking variables
   last_update_time_ = model->GetWorld()->SimTime();
 }
@@ -193,12 +197,13 @@ void NeatoGazeboDiffDrive::Reset()
   last_update_time_ = left_wheel_joint_->GetWorld()->SimTime();
   left_wheel_joint_->SetParam("fmax", 0, max_wheel_torque_);
   right_wheel_joint_->SetParam("fmax", 0, max_wheel_torque_);
-  pose_encoder_.x = 0;
-  pose_encoder_.y = 0;
-  pose_encoder_.theta = 0;
-  // TODO(neato)
-  // target_x_ = 0;
-  // target_rot_ = 0;
+  {
+    std::lock_guard<std::mutex> lock(cmd_mutex_);
+    current_cmd_.left_dist = 0;
+    current_cmd_.right_dist = 0;
+    current_cmd_.speed = 0;
+    current_cmd_.accel = 0;
+  }
 }
 
 void NeatoGazeboDiffDrive::OnUpdate(const gazebo::common::UpdateInfo & info)
@@ -219,57 +224,18 @@ void NeatoGazeboDiffDrive::OnUpdate(const gazebo::common::UpdateInfo & info)
   if (publish_odom_tf_) {
     PublishOdometryTf(info.simTime);
   }
-  // UpdateWheelVelocities();
-
-  // TODO(neato) current speed, update speed
-  double current_left_speed = left_wheel_joint_->GetVelocity(0) * (wheel_diameter_ / 2.0);
-  double current_right_speed = right_wheel_joint_->GetVelocity(0) * (wheel_diameter_ / 2.0);
-  /*
-  // If max_accel == 0, or target speed is reached
-  for (unsigned int i = 0; i < num_wheel_pairs_; ++i) {
-    if (max_wheel_accel_ == 0 ||
-      ((fabs(desired_wheel_speed_[2 * i + LEFT] - current_speed[2 * i + LEFT]) < 0.01) &&
-      (fabs(desired_wheel_speed_[2 * i + RIGHT] - current_speed[2 * i + RIGHT]) < 0.01)))
-    {
-      joints_[2 * i + LEFT]->SetParam(
-        "vel", 0, desired_wheel_speed_[2 * i + LEFT] / (wheel_diameter_[i] / 2.0));
-      joints_[2 * i + RIGHT]->SetParam(
-        "vel", 0, desired_wheel_speed_[2 * i + RIGHT] / (wheel_diameter_[i] / 2.0));
-    } else {
-      if (desired_wheel_speed_[2 * i + LEFT] >= current_speed[2 * i + LEFT]) {
-        wheel_speed_instr_[2 * i + LEFT] += fmin(
-          desired_wheel_speed_[2 * i + LEFT] -
-          current_speed[2 * i + LEFT], max_wheel_accel_ * seconds_since_last_update);
-      } else {
-        wheel_speed_instr_[2 * i + LEFT] += fmax(
-          desired_wheel_speed_[2 * i + LEFT] -
-          current_speed[2 * i + LEFT], -max_wheel_accel_ * seconds_since_last_update);
-      }
-
-      if (desired_wheel_speed_[2 * i + RIGHT] > current_speed[2 * i + RIGHT]) {
-        wheel_speed_instr_[2 * i + RIGHT] += fmin(
-          desired_wheel_speed_[2 * i + RIGHT] -
-          current_speed[2 * i + RIGHT], max_wheel_accel_ * seconds_since_last_update);
-      } else {
-        wheel_speed_instr_[2 * i + RIGHT] += fmax(
-          desired_wheel_speed_[2 * i + RIGHT] -
-          current_speed[2 * i + RIGHT], -max_wheel_accel_ * seconds_since_last_update);
-      }
-
-      joints_[2 * i + LEFT]->SetParam(
-        "vel", 0, wheel_speed_instr_[2 * i + LEFT] / (wheel_diameter_[i] / 2.0));
-      joints_[2 * i + RIGHT]->SetParam(
-        "vel", 0, wheel_speed_instr_[2 * i + RIGHT] / (wheel_diameter_[i] / 2.0));
-    }
-  }
-  */
+  UpdateWheelJoints(seconds_since_last_update);
 
   last_update_time_ = info.simTime;
 }
 
 void NeatoGazeboDiffDrive::OnCmd(const neato_msgs::msg::NeatoWheelCommand::SharedPtr msg)
 {
-  // TODO(neato)
+  std::lock_guard<std::mutex> lock(cmd_mutex_);
+  current_cmd_ = *msg;
+  if (current_cmd_.accel <= 0.0) {
+    current_cmd_.accel = current_cmd_.speed;
+  }
 }
 
 void NeatoGazeboDiffDrive::UpdateOdometry()
@@ -335,6 +301,68 @@ void NeatoGazeboDiffDrive::PublishOdometryTf(const gazebo::common::Time & sim_ti
   msg.transform.rotation = odom_.pose.pose.orientation;
 
   transform_broadcaster_->sendTransform(msg);
+}
+
+void NeatoGazeboDiffDrive::UpdateWheelJoints(double seconds_since_last_update)
+{
+  // TODO(neato) check if this logic is actually doing something similar to the robot firmware
+  // this should be similar to the robot->motors logic
+
+  const double wheel_radius = wheel_diameter_ / 2.0;
+  const double speed_close_enough = 0.01;
+  const double dist_close_enough = 0.01;
+
+  neato_msgs::msg::NeatoWheelCommand current_cmd;
+  const double current_left_speed = left_wheel_joint_->GetVelocity(0) * wheel_radius;
+  const double current_right_speed = right_wheel_joint_->GetVelocity(0) * wheel_radius;
+  {
+    const double left_distance_traveled = current_left_speed * seconds_since_last_update;
+    const double right_distance_traveled = current_right_speed * seconds_since_last_update;
+
+    std::lock_guard<std::mutex> lock(cmd_mutex_);
+    current_cmd_.left_dist -= left_distance_traveled;
+    current_cmd_.right_dist -= right_distance_traveled;
+    current_cmd = current_cmd_;
+  }
+
+  if (current_cmd.left_dist < dist_close_enough) {
+    // Distance accomplished, stop running abruptly..?
+    left_wheel_joint_->SetParam("vel", 0, 0);
+  } else if (fabs(current_cmd.speed - current_left_speed) < speed_close_enough) {
+    // Max speed accomplished, stay there
+    left_wheel_joint_->SetParam("vel", 0, current_cmd.speed / wheel_radius);
+  } else {
+    if (current_cmd.speed >= current_left_speed) {
+      last_sent_left_wheel_speed_ += fmin(
+        current_cmd.speed - current_left_speed,
+        current_cmd.accel * seconds_since_last_update);
+    } else {
+      last_sent_left_wheel_speed_ += fmax(
+        current_cmd.speed - current_left_speed,
+        -current_cmd.accel * seconds_since_last_update);
+    }
+    left_wheel_joint_->SetParam(
+      "vel", 0, last_sent_left_wheel_speed_ / wheel_radius);
+  }
+
+  if (current_cmd.right_dist < dist_close_enough) {
+    // Distance accomplished, stop running abruptly..?
+    right_wheel_joint_->SetParam("vel", 0, 0);
+  } else if (fabs(current_cmd.speed - current_right_speed) < speed_close_enough) {
+    right_wheel_joint_->SetParam("vel", 0, current_cmd.speed / wheel_radius);
+  } else {
+    if (current_cmd.speed >= current_right_speed) {
+      last_sent_right_wheel_speed_ += fmin(
+        current_cmd.speed - current_right_speed,
+        current_cmd.accel * seconds_since_last_update);
+    } else {
+      last_sent_right_wheel_speed_ += fmax(
+        current_cmd.speed - current_right_speed,
+        -current_cmd.accel * seconds_since_last_update);
+    }
+    right_wheel_joint_->SetParam(
+      "vel", 0, last_sent_right_wheel_speed_ / wheel_radius);
+  }
 }
 
 GZ_REGISTER_MODEL_PLUGIN(NeatoGazeboDiffDrive)

@@ -7,6 +7,7 @@ find_package(gazebo_ros REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(neato_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rcpputils REQUIRED)
 find_package(tf2_ros REQUIRED)
 
 add_library(neato_gazebo_diff_drive SHARED
@@ -18,6 +19,7 @@ ament_target_dependencies(neato_gazebo_diff_drive
   nav_msgs
   neato_msgs
   rclcpp
+  rcpputils
   tf2_ros
 )
 ament_export_libraries(neato_gazebo_diff_drive)
