@@ -4,7 +4,7 @@
   <xacro:macro name="neato_sim">
 
     <gazebo reference="base_link">
-      <material>Gazebo/LightGrey</material>
+      <material>Gazebo/DarkGrey</material>
     </gazebo>
 
     <gazebo reference="wheel_left_link">

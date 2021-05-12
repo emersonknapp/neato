@@ -189,7 +189,7 @@ void NeatoGazeboDiffDrive::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr
   transform_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(ros_node_);
 
   // Initialize tracking variables
-  last_update_time_ = model->GetWorld()->SimTime();
+  Reset();
 }
 
 void NeatoGazeboDiffDrive::Reset()

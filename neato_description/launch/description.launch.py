@@ -9,13 +9,19 @@ from launch_ros.actions import Node
 import xacro
 
 
-def generate_launch_description():
-    xacro_path = os.path.join(
-        get_package_share_directory('neato_description'), 'urdf', 'neato_standalone.urdf.xacro')
+def render_xacro(xacro_path: str) -> str:
     urdf_content = xacro.process_file(xacro_path)
     urdf_file = tempfile.NamedTemporaryFile(delete=False)
     rendered_urdf = urdf_content.toprettyxml(indent='  ')
     urdf_file.write(rendered_urdf.encode('utf-8'))
+    return urdf_file.name
+
+
+def generate_launch_description():
+    xacro_path = os.path.join(
+        get_package_share_directory('neato_description'),
+        'urdf', 'neato_standalone.urdf.xacro')
+    urdf_file = render_xacro(xacro_path)
 
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='false'),
@@ -27,7 +33,7 @@ def generate_launch_description():
             parameters=[{
                 'publish_frequency': 5.0,
                 'use_sim_time': LaunchConfiguration('use_sim_time')}],
-            arguments=[urdf_file.name],
+            arguments=[urdf_file],
         ),
         # Node(
         #     package='joint_state_publisher',

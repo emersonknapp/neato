@@ -19,6 +19,8 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import ExecuteProcess
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 import xacro
@@ -50,6 +52,18 @@ def generate_launch_description():
         get_package_install_directory('neato_description'),
     ])
 
+    description_launch_path = os.path.join(
+        get_package_share_directory('neato_description'),
+        'launch',
+        'description.launch.py'
+    )
+
+    rviz_config_path = os.path.join(
+        get_package_share_directory('neato_description'),
+        'rviz',
+        'view.rviz'
+    )
+
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='true'),
         ExecuteProcess(
@@ -70,5 +84,18 @@ def generate_launch_description():
             output='screen',
             arguments=['-file', urdf_file, '-entity', 'neato', '-spawn_service_timeout', '120'],
             parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+        ),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(description_launch_path)
+        ),
+        Node(
+            package='rviz2',
+            executable='rviz2',
+            name='rviz2',
+            arguments=['-d', rviz_config_path],
+            output='screen',
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            }],
         ),
     ])
