@@ -309,10 +309,13 @@ void NeatoGazeboDiffDrive::UpdateWheelJoints(double seconds_since_last_update)
   // this should be similar to the robot->motors logic
 
   const double wheel_radius = wheel_diameter_ / 2.0;
-  const double speed_close_enough = 0.01;
-  const double dist_close_enough = 0.01;
+  const double speed_close_enough = 0.0001;
+  const double dist_close_enough = 0.0001;
+  double left_dist_remaining_meters;
+  double right_dist_remaining_meters;
+  double target_speed_meters_s;
+  double accel_meters_s_s;
 
-  neato_msgs::msg::NeatoWheelCommand current_cmd;
   const double current_left_speed = left_wheel_joint_->GetVelocity(0) * wheel_radius;
   const double current_right_speed = right_wheel_joint_->GetVelocity(0) * wheel_radius;
   {
@@ -320,45 +323,48 @@ void NeatoGazeboDiffDrive::UpdateWheelJoints(double seconds_since_last_update)
     const double right_distance_traveled = current_right_speed * seconds_since_last_update;
 
     std::lock_guard<std::mutex> lock(cmd_mutex_);
-    current_cmd_.left_dist -= left_distance_traveled;
-    current_cmd_.right_dist -= right_distance_traveled;
-    current_cmd = current_cmd_;
+    current_cmd_.left_dist -= left_distance_traveled * 1000.0;
+    left_dist_remaining_meters = current_cmd_.left_dist / 1000.0;
+    current_cmd_.right_dist -= right_distance_traveled * 1000.0;
+    right_dist_remaining_meters = current_cmd_.right_dist / 1000.0;
+    target_speed_meters_s = current_cmd_.speed / 1000.0;
+    accel_meters_s_s = current_cmd_.accel / 1000.0;
   }
 
-  if (current_cmd.left_dist < dist_close_enough) {
+  if (left_dist_remaining_meters < dist_close_enough) {
     // Distance accomplished, stop running abruptly..?
-    left_wheel_joint_->SetParam("vel", 0, 0);
-  } else if (fabs(current_cmd.speed - current_left_speed) < speed_close_enough) {
+    left_wheel_joint_->SetParam("vel", 0, 0.0);
+  } else if (fabs(target_speed_meters_s - current_left_speed) < speed_close_enough) {
     // Max speed accomplished, stay there
-    left_wheel_joint_->SetParam("vel", 0, current_cmd.speed / wheel_radius);
+    left_wheel_joint_->SetParam("vel", 0, target_speed_meters_s / wheel_radius);
   } else {
-    if (current_cmd.speed >= current_left_speed) {
+    if (target_speed_meters_s >= current_left_speed) {
       last_sent_left_wheel_speed_ += fmin(
-        current_cmd.speed - current_left_speed,
-        current_cmd.accel * seconds_since_last_update);
+        target_speed_meters_s - current_left_speed,
+        accel_meters_s_s * seconds_since_last_update);
     } else {
       last_sent_left_wheel_speed_ += fmax(
-        current_cmd.speed - current_left_speed,
-        -current_cmd.accel * seconds_since_last_update);
+        target_speed_meters_s - current_left_speed,
+        -accel_meters_s_s * seconds_since_last_update);
     }
     left_wheel_joint_->SetParam(
       "vel", 0, last_sent_left_wheel_speed_ / wheel_radius);
   }
 
-  if (current_cmd.right_dist < dist_close_enough) {
+  if (right_dist_remaining_meters < dist_close_enough) {
     // Distance accomplished, stop running abruptly..?
-    right_wheel_joint_->SetParam("vel", 0, 0);
-  } else if (fabs(current_cmd.speed - current_right_speed) < speed_close_enough) {
-    right_wheel_joint_->SetParam("vel", 0, current_cmd.speed / wheel_radius);
+    right_wheel_joint_->SetParam("vel", 0, 0.0);
+  } else if (fabs(target_speed_meters_s - current_right_speed) < speed_close_enough) {
+    right_wheel_joint_->SetParam("vel", 0, target_speed_meters_s / wheel_radius);
   } else {
-    if (current_cmd.speed >= current_right_speed) {
+    if (target_speed_meters_s >= current_right_speed) {
       last_sent_right_wheel_speed_ += fmin(
-        current_cmd.speed - current_right_speed,
-        current_cmd.accel * seconds_since_last_update);
+        target_speed_meters_s - current_right_speed,
+        accel_meters_s_s * seconds_since_last_update);
     } else {
       last_sent_right_wheel_speed_ += fmax(
-        current_cmd.speed - current_right_speed,
-        -current_cmd.accel * seconds_since_last_update);
+        target_speed_meters_s - current_right_speed,
+        -accel_meters_s_s * seconds_since_last_update);
     }
     right_wheel_joint_->SetParam(
       "vel", 0, last_sent_right_wheel_speed_ / wheel_radius);
