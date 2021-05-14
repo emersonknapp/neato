@@ -13,6 +13,7 @@
   <depend>nav_msgs</depend>
   <depend>neato_msgs</depend>
   <depend>rclcpp</depend>
+  <depend>rclpy</depend>
   <depend>rcpputils</depend>
   <depend>tf2_ros</depend>
 
