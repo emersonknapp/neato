@@ -20,6 +20,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import ExecuteProcess
 from launch.actions import IncludeLaunchDescription
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
@@ -66,6 +67,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='true'),
+        DeclareLaunchArgument('viz', default_value='true'),
         ExecuteProcess(
             cmd=[
                 'gazebo', '--verbose', world,
@@ -97,5 +99,6 @@ def generate_launch_description():
             parameters=[{
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
             }],
+            condition=IfCondition(LaunchConfiguration('viz')),
         ),
     ])
