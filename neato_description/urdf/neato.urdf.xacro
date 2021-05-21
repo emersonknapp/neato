@@ -20,18 +20,38 @@
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <material name="dark_grey"/>
       </visual>
-      <collision>
+      <collision name="body">
         <geometry>
           <cylinder length="0.04" radius="0.15"/>
         </geometry>
         <origin xyz="-0.01 0 0.03" rpy="0 0 0"/>
       </collision>
-      <collision>
+      <collision name="left_bumper">
         <geometry>
           <box size="0.16 0.3 0.05"/>
         </geometry>
         <origin xyz="0.08 0 0.03" rpy="0 0 0"/>
       </collision>
+      <!--
+      <collision name="left_front_bumper">
+        <geometry>
+          <box size="0.16 0.3 0.05"/>
+        </geometry>
+        <origin xyz="0.08 0 0.03" rpy="0 0 0"/>
+      </collision>
+      <collision name="">
+        <geometry>
+          <box size="0.16 0.3 0.05"/>
+        </geometry>
+        <origin xyz="0.08 0 0.03" rpy="0 0 0"/>
+      </collision>
+      <collision name="bumper">
+        <geometry>
+          <box size="0.16 0.3 0.05"/>
+        </geometry>
+        <origin xyz="0.08 0 0.03" rpy="0 0 0"/>
+      </collision>
+      -->
       <inertial>
         <origin xyz="0.01 0 0"/>
         <mass value="2.4"/>
