@@ -43,10 +43,10 @@ CTRL-C to quit
 """
 
 bindings = {
-    'q': lambda l, r, s, a: (l + 1.0, r, s, a),
-    'a': lambda l, r, s, a: (l - 1.0, r, s, a),
-    'w': lambda l, r, s, a: (l, r + 1.0, s, a),
-    's': lambda l, r, s, a: (l, r - 1.0, s, a),
+    'q': lambda l, r, s, a: (l + 10.0, r, s, a),
+    'a': lambda l, r, s, a: (l - 10.0, r, s, a),
+    'w': lambda l, r, s, a: (l, r + 10.0, s, a),
+    's': lambda l, r, s, a: (l, r - 10.0, s, a),
     'e': lambda l, r, s, a: (l, r, s * 1.1, a),
     'd': lambda l, r, s, a: (l, r, s * 0.9, a),
 }
