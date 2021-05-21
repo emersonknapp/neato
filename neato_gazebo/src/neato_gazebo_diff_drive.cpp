@@ -77,6 +77,7 @@ private:
   double wheel_diameter_;
   double max_wheel_torque_;
   double odom_covariance_[3];
+  const double max_wheel_speed_mm = 280;
 
   std::string robot_base_frame_;
   std::string odometry_frame_;
@@ -102,6 +103,8 @@ private:
   gazebo::common::Time last_update_time_;
   std::mutex cmd_mutex_;
   neato_msgs::msg::NeatoWheelCommand current_cmd_ RCPPUTILS_TSA_GUARDED_BY(cmd_mutex_);
+  double cmd_left_right_ratio_;
+
   double last_sent_left_wheel_speed_;
   double last_sent_right_wheel_speed_;
 
@@ -236,9 +239,20 @@ void NeatoGazeboDiffDrive::OnCmd(const neato_msgs::msg::NeatoWheelCommand::Share
   if (current_cmd_.speed < 0.0) {
     current_cmd_.speed = 0.0;
   }
+  if (current_cmd_.speed > max_wheel_speed_mm) {
+    current_cmd_.speed = max_wheel_speed_mm;
+  }
   if (current_cmd_.accel <= 0.0) {
     current_cmd_.accel = current_cmd_.speed;
   }
+  if (current_cmd_.right_dist == 0.0 || current_cmd_.left_dist == 0.0) {
+    cmd_left_right_ratio_ = 1.0;
+  } else if (current_cmd_.left_dist != current_cmd_.right_dist) {
+    cmd_left_right_ratio_ = current_cmd_.left_dist / current_cmd_.right_dist;
+  } else {
+    cmd_left_right_ratio_ = 1.0;
+  }
+
   RCLCPP_INFO(ros_node_->get_logger(), "left_dist=%f, right_dist=%f, speed=%f, accel=%f",
               current_cmd_.left_dist, current_cmd_.right_dist, current_cmd_.speed, current_cmd_.accel);
 }
@@ -308,48 +322,61 @@ void NeatoGazeboDiffDrive::PublishOdometryTf(const gazebo::common::Time & sim_ti
   transform_broadcaster_->sendTransform(msg);
 }
 
+double sign(double val) {
+  return val >= 0 ? 1 : -1;
+}
+
+// Return speed to command to motor
+double updateJoint(
+  double remaining_meters,
+  double target_speed,
+  double accel,
+  double wheel_radius,
+  double seconds_since_last_update,
+  gazebo::physics::JointPtr joint)
+{
+  static const double epsilon = 0.001;
+  const float actual_speed = joint->GetVelocity(0) * wheel_radius;
+  double command_speed = actual_speed;
+
+  if (fabs(remaining_meters) < epsilon) {
+    // Distance accomplished, stop running abruptly..?
+    return 0.0;
+  } else if (fabs(target_speed) - fabs(actual_speed) < epsilon) {
+    // Max speed accomplished, stay there
+    return target_speed * sign(remaining_meters);
+  } else {
+    if (target_speed >= fabs(actual_speed)) {
+      if (remaining_meters > 0.0) {
+        command_speed += accel * seconds_since_last_update;
+      } else {
+        command_speed -= accel * seconds_since_last_update;
+      }
+    } else {
+      if (remaining_meters > 0.0) {
+        command_speed -= accel * seconds_since_last_update;
+      } else {
+        command_speed += accel * seconds_since_last_update;
+      }
+    }
+    return command_speed / wheel_radius;
+  }
+}
+
 void NeatoGazeboDiffDrive::UpdateWheelJoints(double seconds_since_last_update)
 {
-  // TODO(neato) check if this logic is actually doing something similar to the robot firmware
-  // this should be similar to the robot->motors logic
-
   const double wheel_radius = wheel_diameter_ / 2.0;
-
-  const double speed_close_enough = 0.0001;
-  const double dist_close_enough = 0.0001;
-  const double speed_too_fast = 0.280;
   double left_dist_remaining_meters;
   double right_dist_remaining_meters;
 
-  float left_dist, right_dist;
+  const float left_distance_traveled = left_wheel_joint_->GetVelocity(0) * wheel_radius * seconds_since_last_update;
+  const float right_distance_traveled = right_wheel_joint_->GetVelocity(0) * wheel_radius * seconds_since_last_update;
 
-  left_dist = current_cmd_.left_dist / 1000.0f;
-  right_dist = current_cmd_.right_dist / 1000.0f;
-
-  const float left_speed = left_wheel_joint_->GetVelocity(0) * wheel_radius;
-  const float right_speed = right_wheel_joint_->GetVelocity(0) * wheel_radius;
-
-  float left_target_speed = current_cmd_.speed / 1000.0f;
-  float right_target_speed = current_cmd_.speed / 1000.0f;
-
-  float left_accel = current_cmd_.accel / 1000.0f;
-  float right_accel = current_cmd_.accel / 1000.0f;
-
-  // left_speed *= (left_dist > 0.0f) ? 1.0f : -1.0f;
-  // right_speed *= (right_dist > 0.0f) ? 1.0f : -1.0f;
-
-  // if (fabs(left_dist) >= 0.001f || fabs(right_dist) >= 0.001f) {
-  //   RCLCPP_INFO(ros_node_->get_logger(), "left_dist=%f, right_dist=%f\n", left_dist, right_dist);
-  // }
-
-  // if (fabs(left_speed) >= speed_close_enough || fabs(right_speed) >= speed_close_enough) {
-  //   RCLCPP_INFO(ros_node_->get_logger(), "left_speed=%f, right_speed=%f\n", left_speed, right_speed);
-  // }
+  float target_speed = current_cmd_.speed / 1000.0f;
+  float accel = current_cmd_.accel / 1000.0f;
 
   {
-    const double left_distance_traveled = left_speed * seconds_since_last_update;
-    const double right_distance_traveled = right_speed * seconds_since_last_update;
-
+    // With a mutex, read current information from the latest command
     std::lock_guard<std::mutex> lock(cmd_mutex_);
     if (current_cmd_.left_dist >= 0.0) {
       current_cmd_.left_dist = std::max(0.0, current_cmd_.left_dist - left_distance_traveled * 1000.0);
@@ -363,105 +390,39 @@ void NeatoGazeboDiffDrive::UpdateWheelJoints(double seconds_since_last_update)
       current_cmd_.right_dist = std::min(0.0, current_cmd_.right_dist - right_distance_traveled * 1000.0);
     }
     right_dist_remaining_meters = current_cmd_.right_dist / 1000.0;
-    
-
-    if (left_dist != right_dist) {
-      double dFrac = fabs(right_dist / left_dist);
-
-      if (dFrac < 1.0) {
-        // leftDistance is larger
-        right_target_speed *= dFrac;
-        right_accel *= dFrac;
-      } else {
-        left_target_speed /= dFrac;
-        left_accel /= dFrac;
-      }
-    }
   }
 
-  // if (fabs(target_speed_meters_s) >= 0.001f) {
-  //   RCLCPP_INFO(ros_node_->get_logger(), "target_speed_meters_s=%f", target_speed_meters_s);
-  // }
-  if (fabs(left_dist_remaining_meters) >= dist_close_enough ||
-      fabs(right_dist_remaining_meters) >= dist_close_enough) {
-    RCLCPP_INFO(ros_node_->get_logger(), "lw_remaining=%f, rw_remaining=%f\n",
-    left_dist_remaining_meters, right_dist_remaining_meters);
-  }
+  double left_target_speed = target_speed;
+  double right_target_speed = target_speed;
+  double left_accel = accel;
+  double right_accel = accel;
 
-  if (fabs(left_dist_remaining_meters) < dist_close_enough) {
-    // Distance accomplished, stop running abruptly..?
-    // RCLCPP_INFO(ros_node_->get_logger(), "Approaching destination on left wheel\n");
-    left_wheel_joint_->SetParam("vel", 0, 0.0);
-  } else if (fabs(left_target_speed - fabs(left_speed)) < speed_close_enough) {
-    // Max speed accomplished, stay there
-    // RCLCPP_INFO(ros_node_->get_logger(), "Approaching target speed %f on left wheel\n", target_speed_meters_s);
-    left_wheel_joint_->SetParam("vel", 0, static_cast<double>(left_speed));
+  if (cmd_left_right_ratio_ > 1.0) {
+    // leftDistance is larger
+    right_target_speed /= cmd_left_right_ratio_;
+    right_accel /= cmd_left_right_ratio_;
   } else {
-    if (left_target_speed >= fabs(left_speed)) {
-      if (left_dist_remaining_meters > 0.0) {
-        // RCLCPP_INFO(ros_node_->get_logger(), "Increasing speed by %f to match target speed %f on left wheel\n", accel_meters_s_s * seconds_since_last_update, target_speed_meters_s);
-        last_sent_left_wheel_speed_ += left_accel * seconds_since_last_update;
-      } else {
-        // RCLCPP_INFO(ros_node_->get_logger(), "Decreasing speed by %f to match target speed %f on left wheel\n", accel_meters_s_s * seconds_since_last_update, target_speed_meters_s);
-        last_sent_left_wheel_speed_ -= left_accel * seconds_since_last_update;
-      }
-    } else {
-      if (left_dist_remaining_meters > 0.0) {
-        // RCLCPP_INFO(ros_node_->get_logger(), "Decreasing speed by %f to match target speed %f on left wheel\n", accel_meters_s_s * seconds_since_last_update, target_speed_meters_s);
-        last_sent_left_wheel_speed_ -= left_accel * seconds_since_last_update;
-      } else {
-        // RCLCPP_INFO(ros_node_->get_logger(), "Increasing speed by %f to match target speed %f on left wheel\n", accel_meters_s_s * seconds_since_last_update, target_speed_meters_s);
-        last_sent_left_wheel_speed_ += left_accel * seconds_since_last_update;
-      }
-    }
-    if (last_sent_left_wheel_speed_ > speed_too_fast) {
-      last_sent_left_wheel_speed_ = speed_too_fast;
-    } else if (last_sent_left_wheel_speed_ < -speed_too_fast) {
-      last_sent_left_wheel_speed_ = -speed_too_fast;
-    }
-    left_wheel_joint_->SetParam(
-      "vel", 0, last_sent_left_wheel_speed_ / wheel_radius);
+    left_target_speed *= cmd_left_right_ratio_;
+    left_accel *= cmd_left_right_ratio_;
   }
 
-  if (fabs(right_dist_remaining_meters) < dist_close_enough) {
-    // Distance accomplished, stop running abruptly..?
-    // RCLCPP_INFO(ros_node_->get_logger(), "Approaching destination on right wheel\n");
-    right_wheel_joint_->SetParam("vel", 0, 0.0);
-  } else if (fabs(right_target_speed - fabs(right_speed)) < speed_close_enough) {
-    // RCLCPP_INFO(ros_node_->get_logger(), "Approaching target speed %f on right wheel\n", target_speed_meters_s);
-    right_wheel_joint_->SetParam("vel", 0, static_cast<double>(right_speed));
-  } else {
-    if (right_target_speed >= fabs(right_speed)) {
-      if (right_dist_remaining_meters > 0.0) {
-        // RCLCPP_INFO(ros_node_->get_logger(), "Increasing speed by %f to match target speed %f on right wheel\n", accel_meters_s_s * seconds_since_last_update, target_speed_meters_s);
-        last_sent_right_wheel_speed_ += right_accel * seconds_since_last_update;
-      } else {
-	    // RCLCPP_INFO(ros_node_->get_logger(), "Decreasing speed by %f to match target speed %f on right wheel\n", accel_meters_s_s * seconds_since_last_update, target_speed_meters_s);
-        last_sent_right_wheel_speed_ -= right_accel * seconds_since_last_update;
-      }
-    } else {
-      if (right_dist_remaining_meters > 0.0) {
-        // RCLCPP_INFO(ros_node_->get_logger(), "Decreasing speed by %f to match target speed %f on right wheel\n", accel_meters_s_s * seconds_since_last_update, target_speed_meters_s);
-        last_sent_right_wheel_speed_ -= right_accel * seconds_since_last_update;
-      } else {
-	    // RCLCPP_INFO(ros_node_->get_logger(), "Increasing speed by %f to match target speed %f on right wheel\n", accel_meters_s_s * seconds_since_last_update, target_speed_meters_s);
-        last_sent_right_wheel_speed_ += right_accel * seconds_since_last_update;
-      }
-    }
-    if (last_sent_right_wheel_speed_ > speed_too_fast) {
-      last_sent_right_wheel_speed_ = speed_too_fast;
-    } else if (last_sent_right_wheel_speed_ < -speed_too_fast) {
-      last_sent_right_wheel_speed_ = -speed_too_fast;
-    }
-    right_wheel_joint_->SetParam(
-      "vel", 0, last_sent_right_wheel_speed_ / wheel_radius);
-  }
 
-  double lw_speed = left_wheel_joint_->GetParam("vel", 0);
-  double rw_speed = right_wheel_joint_->GetParam("vel", 0);
-  if (fabs(lw_speed) >= speed_close_enough || fabs(rw_speed) >= speed_close_enough) {
-    RCLCPP_INFO(ros_node_->get_logger(), "lw_speed=%f, rw_speed=%f\n", lw_speed, rw_speed);
-  }
+  double left_cmd_vel = updateJoint(
+    left_dist_remaining_meters,
+    left_target_speed,
+    left_accel,
+    wheel_radius,
+    seconds_since_last_update,
+    left_wheel_joint_);
+  double right_cmd_vel = updateJoint(
+    right_dist_remaining_meters,
+    right_target_speed,
+    right_accel,
+    wheel_radius,
+    seconds_since_last_update,
+    right_wheel_joint_);
+  left_wheel_joint_->SetParam("vel", 0, left_cmd_vel);
+  right_wheel_joint_->SetParam("vel", 0, right_cmd_vel);
 }
 
 GZ_REGISTER_MODEL_PLUGIN(NeatoGazeboDiffDrive)
