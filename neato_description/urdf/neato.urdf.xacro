@@ -12,6 +12,9 @@
 
   <!-- neato -->
   <xacro:macro name="neato">
+    <!-- TODO(emersonknapp) KDL complains about inertia in root link, but adding a dummy changes
+    the names of the collision lumps for the contact sensors. Use new link frames for bumpers
+    instead of collisions on the base_link --> 
     <link name="base_link">
       <visual>
         <geometry>
@@ -58,12 +61,6 @@
                  izz="0.03675" />
       </inertial>
     </link>
-    <link name="base_footprint"/>
-    <joint name="base_joint" type="fixed">
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <parent link="base_link"/>
-      <child link="base_footprint" />
-    </joint>
 
     <joint name="wheel_left_joint" type="continuous">
       <parent link="base_link"/>
