@@ -12,6 +12,15 @@ Render `neato.urdf.xacro` using the `xacro` command - this is the top-level entr
 
 Provides Gazebo utilities for simulating the Neato robot:
 
+
+```
+# Make sure to set up gazebo environment variables
+source /usr/share/gazebo/setup.sh
+source install/setup.bash
+
+ros2 launch neato_gazebo neato_world.launch.py
+```
+
 ### Controller Plugin
 
 The `neato_gazebo_diff_drive` plugin takes a `NeatoWheelCommand` message and translates it to wheel motor velocities.

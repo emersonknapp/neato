@@ -18,17 +18,13 @@ import tempfile
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.actions import ExecuteProcess
 from launch.actions import IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from scripts.gazebo_ros_paths import GazeboRosPaths
 import xacro
-
-
-def get_package_install_directory(package_name):
-    return os.path.join(get_package_share_directory(package_name), '..')
 
 
 def render_xacro(xacro_path: str) -> str:
@@ -37,6 +33,12 @@ def render_xacro(xacro_path: str) -> str:
     rendered_urdf = urdf_content.toprettyxml(indent='  ')
     urdf_file.write(rendered_urdf.encode('utf-8'))
     return urdf_file.name
+
+
+def python_launchfile(pkg, filename):
+    file_path = os.path.join(
+        get_package_share_directory(pkg), 'launch', filename)
+    return PythonLaunchDescriptionSource(file_path)
 
 
 def generate_launch_description():
@@ -48,16 +50,13 @@ def generate_launch_description():
         get_package_share_directory('neato_gazebo'),
         'worlds', 'neato_test.world')
 
-    # extend the Gazebo model paths to find the models in the neato_description package
-    model_path = ':'.join([
-        get_package_install_directory('neato_description'),
-    ])
-
-    description_launch_path = os.path.join(
-        get_package_share_directory('neato_description'),
-        'launch',
-        'description.launch.py'
-    )
+    model_path, plugin_path, resource_path = GazeboRosPaths.get_paths()
+    if 'GAZEBO_MODEL_PATH' in os.environ:
+        model_path += os.pathsep + os.environ['GAZEBO_MODEL_PATH']
+    if 'GAZEBO_PLUGIN_PATH' in os.environ:
+        model_path += os.pathsep + os.environ['GAZEBO_PLUGIN_PATH']
+    if 'GAZEBO_MODEL_PATH' in os.environ:
+        model_path += os.pathsep + os.environ['GAZEBO_MODEL_PATH']
 
     rviz_config_path = os.path.join(
         get_package_share_directory('neato_description'),
@@ -68,16 +67,12 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='true'),
         DeclareLaunchArgument('viz', default_value='true'),
-        ExecuteProcess(
-            cmd=[
-                'gazebo', '--verbose', world,
-                '-s', 'libgazebo_ros_init.so',
-                '-s', 'libgazebo_ros_factory.so',
-            ],
-            additional_env={
-                'GAZEBO_MODEL_PATH': [model_path],
-            },
-            output='screen',
+        IncludeLaunchDescription(
+            python_launchfile('gazebo_ros', 'gazebo.launch.py'),
+            launch_arguments={
+                'world': world,
+                'verbose': 'true',
+            }.items(),
         ),
         Node(
             package='gazebo_ros',
@@ -88,7 +83,7 @@ def generate_launch_description():
             parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
         ),
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(description_launch_path)
+            python_launchfile('neato_description', 'description.launch.py'),
         ),
         Node(
             package='rviz2',
