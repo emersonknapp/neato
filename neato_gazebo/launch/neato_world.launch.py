@@ -47,8 +47,8 @@ def generate_launch_description():
         'urdf', 'neato_standalone.urdf.xacro')
     urdf_file = render_xacro(xacro_path)
     world = os.path.join(
-        get_package_share_directory('neato_gazebo'),
-        'worlds', 'neato_test.world')
+        get_package_share_directory('aws_robomaker_small_house_world'),
+        'worlds', 'small_house.world')
 
     model_path, plugin_path, resource_path = GazeboRosPaths.get_paths()
     if 'GAZEBO_MODEL_PATH' in os.environ:
