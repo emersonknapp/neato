@@ -2,9 +2,8 @@
 
 <robot name="neato_sim" xmlns:xacro="http://ros.org/wiki/xacro">
   <xacro:macro name="neato_sim">
-
     <gazebo reference="base_link">
-      <material>Gazebo/DarkGrey</material>
+      <material>Gazebo/White</material>
     </gazebo>
 
     <gazebo reference="wheel_left_link">
@@ -66,24 +65,56 @@
       <mu2>0.3</mu2>
       <sensor type="contact" name="left_bumper">
         <always_on>1</always_on>
-        <update_rate>50.0</update_rate>
+        <update_rate>10.0</update_rate>
         <visualize>true</visualize>
         <contact>
           <collision>base_link_fixed_joint_lump__left_bumper_collision_1</collision>
         </contact>
         <plugin name="gazebo_ros_bumper_controller" filename="libgazebo_ros_bumper.so">
-          <bumperTopicName>/neato/bumper</bumperTopicName>
-          <frameName>world</frameName>
+          <ros>
+            <remapping>/bumper_states:=/bumper/left</remapping>
+          </ros>
         </plugin>
       </sensor>
-      <!--
-      <sensor type="contact" name="left_front_bumper">
-      </sensor>
-      <sensor type="contact" name="right_front_bumper">
-      </sensor>
       <sensor type="contact" name="right_bumper">
+        <always_on>1</always_on>
+        <update_rate>10.0</update_rate>
+        <visualize>true</visualize>
+        <contact>
+          <collision>base_link_fixed_joint_lump__right_bumper_collision_2</collision>
+        </contact>
+        <plugin name="gazebo_ros_bumper_controller" filename="libgazebo_ros_bumper.so">
+          <ros>
+            <remapping>/bumper_states:=/bumper/right</remapping>
+          </ros>
+        </plugin>
       </sensor>
-      -->
+      <sensor type="contact" name="front_left_bumper">
+        <always_on>1</always_on>
+        <update_rate>10.0</update_rate>
+        <visualize>true</visualize>
+        <contact>
+          <collision>base_link_fixed_joint_lump__front_left_bumper_collision_4</collision>
+        </contact>
+        <plugin name="gazebo_ros_bumper_controller" filename="libgazebo_ros_bumper.so">
+          <ros>
+            <remapping>/bumper_states:=/bumper/front_left</remapping>
+          </ros>
+        </plugin>
+      </sensor>
+      <sensor type="contact" name="front_right_bumper">
+        <always_on>1</always_on>
+        <update_rate>10.0</update_rate>
+        <visualize>true</visualize>
+        <contact>
+          <collision>base_link_fixed_joint_lump__front_right_bumper_collision_3</collision>
+        </contact>
+        <plugin name="gazebo_ros_bumper_controller" filename="libgazebo_ros_bumper.so">
+          <ros>
+            <remapping>/bumper_states:=/bumper/front_right</remapping>
+          </ros>
+        </plugin>
+      </sensor>
     </gazebo>
 
     <!--
@@ -150,7 +181,7 @@
       <sensor type="ray" name="laser">
         <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_ray_sensor.so">
           <ros>
-            <argument>~/out:=scan</argument>
+            <remapping>~/out:=/scan</remapping>
           </ros>
           <output_type>sensor_msgs/LaserScan</output_type>
           <frame_name>laser_link</frame_name>
@@ -186,11 +217,12 @@
       <sensor type="imu" name="neato_imu">
         <plugin name="gazebo_ros_imu_controller" filename="libgazebo_ros_imu_sensor.so">
           <ros>
-            <argument>~/out:=imu</argument>
+            <remapping>~/out:=/imu</remapping>
           </ros>
           <output_type>sensor_msgs/msg/Imu</output_type>
           <body_name>imu_link</body_name>
           <frame_name>imu_link</frame_name>
+          <initial_orientation_as_reference>false</initial_orientation_as_reference>
         </plugin>
         <always_on>true</always_on>
         <update_rate>10</update_rate>
@@ -218,10 +250,8 @@
     <!-- This version is for the NeatoWheelCommand controller. Commented out parameters, not sure if we need them yet. -->
     <gazebo>
       <plugin name="drive_controller" filename="libneato_gazebo_diff_drive.so">
-        <!-- <update_rate>10</update_rate> -->
         <left_joint>wheel_left_joint</left_joint>
         <right_joint>wheel_right_joint</right_joint>
-        <!-- <wheel_separation>0.235</wheel_separation> -->
         <wheel_diameter>0.070</wheel_diameter>
         <max_wheel_torque>20</max_wheel_torque>
         <max_wheel_acceleration>1.0</max_wheel_acceleration>
