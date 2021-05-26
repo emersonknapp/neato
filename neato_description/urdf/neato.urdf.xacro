@@ -28,30 +28,28 @@
       </collision>
       <collision name="left_bumper">
         <geometry>
-          <box size="0.16 0.3 0.05"/>
+          <box size="0.15 0.05 0.05"/>
         </geometry>
-        <origin xyz="0.08 0 0.03" rpy="0 0 0"/>
+        <origin xyz="0.07 0.125 0.03" rpy="0 0 0"/>
       </collision>
-      <!--
-      <collision name="left_front_bumper">
+      <collision name="right_bumper">
         <geometry>
-          <box size="0.16 0.3 0.05"/>
+          <box size="0.15 0.05 0.05"/>
         </geometry>
-        <origin xyz="0.08 0 0.03" rpy="0 0 0"/>
+        <origin xyz="0.07 -0.125 0.03" rpy="0 0 0"/>
       </collision>
-      <collision name="">
+      <collision name="front_right_bumper">
         <geometry>
-          <box size="0.16 0.3 0.05"/>
+          <box size="0.05 0.13 0.05"/>
         </geometry>
-        <origin xyz="0.08 0 0.03" rpy="0 0 0"/>
+        <origin xyz="0.135 -0.07 0.03" rpy="0 0 0"/>
       </collision>
-      <collision name="bumper">
+      <collision name="front_left_bumper">
         <geometry>
-          <box size="0.16 0.3 0.05"/>
+          <box size="0.05 0.13 0.05"/>
         </geometry>
-        <origin xyz="0.08 0 0.03" rpy="0 0 0"/>
+        <origin xyz="0.135 0.07 0.03" rpy="0 0 0"/>
       </collision>
-      -->
       <inertial>
         <origin xyz="0.01 0 0"/>
         <mass value="2.4"/>
